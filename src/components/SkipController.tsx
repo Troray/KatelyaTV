@@ -168,30 +168,38 @@ export default function SkipController({
     (time: number) => {
       if (!skipConfig?.segments?.length) return;
 
-      const currentSegment = skipConfig.segments.find(
+      // 分离片头和片尾逻辑
+      const openingSegments = skipConfig.segments.filter(s => s.type === 'opening');
+      const endingSegments = skipConfig.segments.filter(s => s.type === 'ending');
+
+      // 检查片头（使用时间区间逻辑）
+      const currentOpening = openingSegments.find(
         (segment) => time >= segment.start && time <= segment.end
       );
 
-      if (currentSegment && currentSegment !== currentSkipSegment) {
-        setCurrentSkipSegment(currentSegment);
-        
+      // 检查片尾（使用剩余时长逻辑，但只在checkEndingCountdown中处理）
+      // 这里只处理片头，避免与checkEndingCountdown冲突
+
+      if (currentOpening && currentOpening !== currentSkipSegment) {
+        setCurrentSkipSegment(currentOpening);
+
         // 检查是否开启自动跳过
-        const hasAutoSkipSetting = skipConfig.segments.some(s => s.autoSkip !== false);
-        
+        const hasAutoSkipSetting = currentOpening.autoSkip !== false;
+
         if (hasAutoSkipSetting) {
           // 自动跳过：延迟1秒执行跳过
           if (autoSkipTimeoutRef.current) {
             clearTimeout(autoSkipTimeoutRef.current);
           }
           autoSkipTimeoutRef.current = setTimeout(() => {
-            handleAutoSkip(currentSegment);
+            handleAutoSkip(currentOpening);
           }, 1000);
-          
+
           setShowSkipButton(false); // 自动跳过时不显示按钮
         } else {
           // 手动模式：显示跳过按钮
           setShowSkipButton(true);
-          
+
           // 自动隐藏跳过按钮
           if (skipTimeoutRef.current) {
             clearTimeout(skipTimeoutRef.current);
@@ -201,7 +209,8 @@ export default function SkipController({
             setCurrentSkipSegment(null);
           }, 8000);
         }
-      } else if (!currentSegment && currentSkipSegment) {
+      } else if (!currentOpening && currentSkipSegment && currentSkipSegment.type === 'opening') {
+        // 只有当当前是片头且离开片头区间时才清除
         setCurrentSkipSegment(null);
         setShowSkipButton(false);
         if (skipTimeoutRef.current) {
@@ -212,8 +221,10 @@ export default function SkipController({
         }
       }
 
-      // 检查片尾倒计时
-      checkEndingCountdown(time);
+      // 检查片尾倒计时（单独处理，避免冲突）
+      if (endingSegments.length > 0) {
+        checkEndingCountdown(time);
+      }
     },
     [skipConfig, currentSkipSegment, handleAutoSkip, checkEndingCountdown]
   );
@@ -719,7 +730,7 @@ export default function SkipController({
 
       {/* 管理已有片段 - 优化布局避免重叠 */}
       {skipConfig && skipConfig.segments && skipConfig.segments.length > 0 && !isSettingMode && (
-        <div className="fixed bottom-4 left-4 z-[9998] max-w-sm bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 animate-fade-in">
+        <div className="fixed bottom-4 right-4 z-[9998] max-w-sm bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 animate-fade-in">
           <div className="p-3">
             <h4 className="font-medium mb-2 text-gray-900 dark:text-gray-100 text-sm flex items-center">
               <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -728,34 +739,45 @@ export default function SkipController({
               跳过配置
             </h4>
             <div className="space-y-1">
-              {skipConfig.segments.map((segment, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded text-xs"
-                >
-                  <span className="text-gray-800 dark:text-gray-200 flex-1 mr-2">
-                    <span className="font-medium">
-                      {segment.type === 'opening' ? '🎬片头' : '🎭片尾'}
-                    </span>
-                    <br />
-                    <span className="text-gray-600 dark:text-gray-400">
-                      {formatTime(segment.start)} - {formatTime(segment.end)}
-                    </span>
-                    {segment.autoSkip && (
-                      <span className="ml-1 px-1 bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400 rounded text-xs">
-                        自动
-                      </span>
-                    )}
-                  </span>
-                  <button
-                    onClick={() => handleDeleteSegment(index)}
-                    className="px-1.5 py-0.5 bg-red-500 hover:bg-red-600 text-white rounded text-xs transition-colors flex-shrink-0"
-                    title="删除"
+              {skipConfig.segments.map((segment, index) => {
+                // 根据类型格式化显示
+                let displayText = '';
+                if (segment.type === 'opening') {
+                  displayText = `${formatTime(segment.start)} - ${formatTime(segment.end)}`;
+                } else if (segment.type === 'ending') {
+                  // 片尾：显示剩余时长
+                  displayText = `剩余 ${formatTime(segment.start)} 时跳过`;
+                }
+
+                return (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded text-xs"
                   >
-                    ×
-                  </button>
-                </div>
-              ))}
+                    <span className="text-gray-800 dark:text-gray-200 flex-1 mr-2">
+                      <span className="font-medium">
+                        {segment.type === 'opening' ? '🎬片头' : '🎭片尾'}
+                      </span>
+                      <br />
+                      <span className="text-gray-600 dark:text-gray-400">
+                        {displayText}
+                      </span>
+                      {segment.autoSkip && (
+                        <span className="ml-1 px-1 bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400 rounded text-xs">
+                          自动
+                        </span>
+                      )}
+                    </span>
+                    <button
+                      onClick={() => handleDeleteSegment(index)}
+                      className="px-1.5 py-0.5 bg-red-500 hover:bg-red-600 text-white rounded text-xs transition-colors flex-shrink-0"
+                      title="删除"
+                    >
+                      ×
+                    </button>
+                  </div>
+                );
+              })}
             </div>
             <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
               <button
