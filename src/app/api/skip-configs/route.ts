@@ -55,10 +55,19 @@ export async function POST(request: NextRequest) {
           if (
             typeof segment.start !== 'number' ||
             typeof segment.end !== 'number' ||
-            segment.start >= segment.end ||
             !['opening', 'ending'].includes(segment.type)
           ) {
             return NextResponse.json({ error: '片段数据格式错误' }, { status: 400 });
+          }
+
+          // 片头必须满足 start < end，片尾可以是相同值（智能跳过模式）
+          if (segment.type === 'opening' && segment.start >= segment.end) {
+            return NextResponse.json({ error: '片头开始时间必须小于结束时间' }, { status: 400 });
+          }
+
+          // 片尾可以是相同值（智能跳过模式）或 start < end
+          if (segment.type === 'ending' && segment.start > segment.end) {
+            return NextResponse.json({ error: '片尾结束时间不能小于开始时间' }, { status: 400 });
           }
         }
 
