@@ -43,9 +43,7 @@ export default function SkipController({
   const [batchSettings, setBatchSettings] = useState({
     openingStart: '0:00',   // 片头开始时间（分:秒格式）
     openingEnd: '1:30',     // 片头结束时间（分:秒格式，90秒=1分30秒）
-    endingMode: 'remaining', // 片尾模式：'remaining'(剩余时间) 或 'absolute'(绝对时间)
-    endingStart: '2:00',    // 片尾开始时间（剩余时间模式：还剩多少时间开始倒计时；绝对时间模式：从视频开始多长时间）
-    endingEnd: '',          // 片尾结束时间（可选，空表示直接跳转下一集）
+    endingStart: '1:30',    // 片尾时长（分:秒格式）- 基于剩余时长的智能跳过
     autoSkip: true,         // 自动跳过开关
     autoNextEpisode: true,  // 自动下一集开关
   });
@@ -136,7 +134,7 @@ export default function SkipController({
     }, 1000);
   }, [onNextEpisode]);
 
-  // 检查片尾倒计时
+  // 检查片尾倒计时 - 基于剩余时长的智能跳过逻辑
   const checkEndingCountdown = useCallback((time: number) => {
     if (!skipConfig?.segments?.length || !duration || !onNextEpisode) return;
 
@@ -144,12 +142,22 @@ export default function SkipController({
     if (!endingSegments.length) return;
 
     for (const segment of endingSegments) {
-      const timeToEnd = duration - time;
-      const timeToSegmentStart = duration - segment.start;
-      
-      // 当距离视频结束的时间等于设定的片尾开始时间时，开始倒计时
-      if (timeToEnd <= timeToSegmentStart && timeToEnd > 0 && !showCountdown) {
-        startEndingCountdown(Math.ceil(timeToEnd));
+      const remainingTime = duration - time; // 当前剩余时长
+
+      // 智能判断：如果剩余时长 ≤ 设定的片尾时长，触发跳过
+      // segment.start 现在存储的是"片尾时长"（如90秒），而不是绝对时间点
+      const endingDuration = segment.start; // 片尾时长（秒）
+
+      if (remainingTime <= endingDuration && remainingTime > 0 && !showCountdown) {
+        // 如果设置了自动跳过，直接跳转下一集
+        if (segment.autoSkip !== false) {
+          if (onNextEpisode) {
+            onNextEpisode();
+          }
+        } else {
+          // 否则显示倒计时
+          startEndingCountdown(Math.ceil(remainingTime));
+        }
         break;
       }
     }
@@ -297,65 +305,25 @@ export default function SkipController({
       });
     }
 
-    // 添加片尾设置
+    // 添加片尾设置 - 基于剩余时长的智能跳过逻辑
     if (batchSettings.endingStart) {
-      const endingStartSeconds = timeToSeconds(batchSettings.endingStart);
-      
-      // 根据模式计算实际的开始时间
-      let actualStartSeconds: number;
-      if (batchSettings.endingMode === 'remaining') {
-        // 剩余时间模式：从视频总长度减去剩余时间
-        actualStartSeconds = duration - endingStartSeconds;
-      } else {
-        // 绝对时间模式：使用输入的时间
-        actualStartSeconds = endingStartSeconds;
-      }
-      
-      // 确保开始时间在有效范围内
-      if (actualStartSeconds < 0) {
-        actualStartSeconds = 0;
-      } else if (actualStartSeconds >= duration) {
-        alert(`片尾开始时间超出视频长度（总长：${secondsToTime(duration)}）`);
+      const endingDuration = timeToSeconds(batchSettings.endingStart); // 片尾时长（秒）
+
+      if (endingDuration <= 0) {
+        alert('片尾时长必须大于0');
         return;
       }
-      
-      // 如果没有设置结束时间，则直接跳转到下一集
-      if (!batchSettings.endingEnd || batchSettings.endingEnd.trim() === '') {
-        // 直接从指定时间跳转下一集
-        segments.push({
-          start: actualStartSeconds,
-          end: duration, // 设置为视频总长度
-          type: 'ending',
-          title: batchSettings.endingMode === 'remaining' 
-            ? `剩余${batchSettings.endingStart}时跳转下一集` 
-            : '片尾跳转下一集',
-          autoSkip: batchSettings.autoSkip,
-          autoNextEpisode: batchSettings.autoNextEpisode,
-        });
-      } else {
-        let actualEndSeconds: number;
-        const endingEndSeconds = timeToSeconds(batchSettings.endingEnd);
-        
-        if (batchSettings.endingMode === 'remaining') {
-          actualEndSeconds = duration - endingEndSeconds;
-        } else {
-          actualEndSeconds = endingEndSeconds;
-        }
-        
-        if (actualStartSeconds >= actualEndSeconds) {
-          alert('片尾开始时间必须小于结束时间');
-          return;
-        }
-        
-        segments.push({
-          start: actualStartSeconds,
-          end: actualEndSeconds,
-          type: 'ending',
-          title: batchSettings.endingMode === 'remaining' ? '片尾（剩余时间模式）' : '片尾',
-          autoSkip: batchSettings.autoSkip,
-          autoNextEpisode: batchSettings.autoNextEpisode,
-        });
-      }
+
+      // 片尾配置现在存储的是"片尾时长"，而不是绝对时间点
+      // 当剩余时长 ≤ 片尾时长时，触发跳过逻辑
+      segments.push({
+        start: endingDuration, // 存储片尾时长
+        end: endingDuration,   // 保持一致
+        type: 'ending',
+        title: `剩余${batchSettings.endingStart}秒时跳过片尾`,
+        autoSkip: batchSettings.autoSkip,
+        autoNextEpisode: batchSettings.autoNextEpisode,
+      });
     }
 
     if (segments.length === 0) {
@@ -380,9 +348,7 @@ export default function SkipController({
       setBatchSettings({
         openingStart: '0:00',
         openingEnd: '1:30',
-        endingMode: 'remaining',
-        endingStart: '2:00',
-        endingEnd: '',
+        endingStart: '1:30',
         autoSkip: true,
         autoNextEpisode: true,
       });
@@ -451,9 +417,7 @@ export default function SkipController({
       // 初始化默认值
       let openingStart = '0:00';
       let openingEnd = '1:30';
-      let endingMode: 'remaining' | 'absolute' = 'remaining';
-      let endingStart = '2:00';
-      let endingEnd = '';
+      let endingStart = '1:30'; // 片尾时长
       let autoSkip = true;
       let autoNextEpisode = true;
 
@@ -464,22 +428,8 @@ export default function SkipController({
           openingEnd = secondsToTime(segment.end);
           autoSkip = segment.autoSkip !== false;
         } else if (segment.type === 'ending') {
-          // 判断是剩余时间模式还是绝对时间模式
-          const remainingTime = duration - segment.start;
-          const isRemainingMode = Math.abs(remainingTime - (segment.title?.match(/剩余(\d+:\d+)/)?.[1] ? timeToSeconds(segment.title.match(/剩余(\d+:\d+)/)[1]) : 0)) < 1;
-
-          if (isRemainingMode) {
-            endingMode = 'remaining';
-            endingStart = secondsToTime(remainingTime);
-          } else {
-            endingMode = 'absolute';
-            endingStart = secondsToTime(segment.start);
-          }
-
-          if (segment.end > segment.start) {
-            endingEnd = secondsToTime(segment.end);
-          }
-
+          // 新逻辑：segment.start 存储的是片尾时长
+          endingStart = secondsToTime(segment.start);
           autoSkip = segment.autoSkip !== false;
           autoNextEpisode = segment.autoNextEpisode !== false;
         }
@@ -488,14 +438,12 @@ export default function SkipController({
       setBatchSettings({
         openingStart,
         openingEnd,
-        endingMode,
         endingStart,
-        endingEnd,
         autoSkip,
         autoNextEpisode,
       });
     }
-  }, [isSettingMode, skipConfig, duration, secondsToTime, timeToSeconds]);
+  }, [isSettingMode, skipConfig, secondsToTime]);
 
   // 清理定时器
   useEffect(() => {
@@ -633,80 +581,38 @@ export default function SkipController({
                 </div>
               </div>
 
-              {/* 片尾设置 */}
+              {/* 片尾设置 - 基于剩余时长的智能跳过 */}
               <div className="space-y-4">
                 <h4 className="font-medium text-gray-900 dark:text-gray-100 border-b pb-2">
                   🎭 片尾设置
                 </h4>
-                
-                {/* 片尾模式选择 */}
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
-                    计时模式
-                  </label>
-                  <div className="flex gap-4">
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="endingMode"
-                        value="remaining"
-                        checked={batchSettings.endingMode === 'remaining'}
-                        onChange={(e) => setBatchSettings({...batchSettings, endingMode: e.target.value})}
-                        className="mr-2"
-                      />
-                      剩余时间（推荐）
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="endingMode"
-                        value="absolute"
-                        checked={batchSettings.endingMode === 'absolute'}
-                        onChange={(e) => setBatchSettings({...batchSettings, endingMode: e.target.value})}
-                        className="mr-2"
-                      />
-                      绝对时间
-                    </label>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {batchSettings.endingMode === 'remaining' 
-                      ? '基于剩余时间倒计时（如：还剩2分钟时开始）' 
-                      : '基于播放时间（如：播放到第20分钟时开始）'
-                    }
-                  </p>
-                </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-                    {batchSettings.endingMode === 'remaining' ? '剩余时间 (分:秒)' : '开始时间 (分:秒)'}
+                    片尾时长 (分:秒)
                   </label>
                   <input
                     type="text"
                     value={batchSettings.endingStart}
                     onChange={(e) => setBatchSettings({...batchSettings, endingStart: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                    placeholder={batchSettings.endingMode === 'remaining' ? '2:00' : '20:00'}
+                    placeholder="1:30"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    {batchSettings.endingMode === 'remaining' 
-                      ? '当剩余时间达到此值时开始倒计时' 
-                      : '从视频开始播放此时间后开始检测片尾'
-                    }
+                    当剩余时长 ≤ 此值时，自动跳过片尾
                   </p>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-                    结束时间 (分:秒) - 可选
-                  </label>
-                  <input
-                    type="text"
-                    value={batchSettings.endingEnd}
-                    onChange={(e) => setBatchSettings({...batchSettings, endingEnd: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                    placeholder="留空直接跳下一集"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">空白=直接跳下一集</p>
+                <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg border border-blue-200 dark:border-blue-700">
+                  <p className="text-sm text-blue-800 dark:text-blue-200 font-medium mb-1">
+                    💡 智能跳过逻辑
+                  </p>
+                  <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+                    例如：设置片尾时长为 90 秒（1:30）<br/>
+                    • 21分钟剧集：播放到 19:30 时跳过<br/>
+                    • 17分钟剧集：播放到 15:30 时跳过<br/>
+                    • 自动适应不同剧集时长，无需重新设置
+                  </p>
                 </div>
               </div>
             </div>
