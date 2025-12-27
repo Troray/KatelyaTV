@@ -141,6 +141,9 @@ export default function SkipController({
     const endingSegments = skipConfig.segments.filter(s => s.type === 'ending' && s.autoNextEpisode !== false);
     if (!endingSegments.length) return;
 
+    // 防止重复触发：检查是否已经在处理中
+    if (showCountdown) return;
+
     for (const segment of endingSegments) {
       const remainingTime = duration - time; // 当前剩余时长
 
@@ -148,9 +151,18 @@ export default function SkipController({
       // segment.start 现在存储的是"片尾时长"（如90秒），而不是绝对时间点
       const endingDuration = segment.start; // 片尾时长（秒）
 
-      if (remainingTime <= endingDuration && remainingTime > 0 && !showCountdown) {
+      // 只有在精确匹配时才触发，避免重复调用
+      // 使用时间范围判断，避免在边界值附近反复触发
+      if (remainingTime > 0 && remainingTime <= endingDuration && remainingTime > endingDuration - 1) {
         // 如果设置了自动跳过，直接跳转下一集
         if (segment.autoSkip !== false) {
+          // 防止快速连续调用
+          const now = Date.now();
+          if (now - lastSkipTimeRef.current < 3000) { // 2秒内不重复触发
+            return;
+          }
+          lastSkipTimeRef.current = now;
+
           if (onNextEpisode) {
             onNextEpisode();
           }
