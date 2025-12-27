@@ -644,9 +644,7 @@ export default function SkipController({
                   setBatchSettings({
                     openingStart: '0:00',
                     openingEnd: '1:30',
-                    endingMode: 'remaining',
-                    endingStart: '2:00',
-                    endingEnd: '',
+                    endingStart: '1:30',
                     autoSkip: true,
                     autoNextEpisode: true,
                   });
