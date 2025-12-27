@@ -296,10 +296,8 @@ function PlayPageClient() {
     console.log('播放源评分排序结果:');
     resultsWithScore.forEach((result, index) => {
       console.log(
-        `${index + 1}. ${
-          result.source.source_name
-        } - 评分: ${result.score.toFixed(2)} (${result.testResult.quality}, ${
-          result.testResult.loadSpeed
+        `${index + 1}. ${result.source.source_name
+        } - 评分: ${result.score.toFixed(2)} (${result.testResult.quality}, ${result.testResult.loadSpeed
         }, ${result.testResult.pingTime}ms)`
       );
     });
@@ -505,17 +503,31 @@ function PlayPageClient() {
         }
         const data = await response.json();
 
+        // 处理新的搜索结果格式：合并 regular_results 和 adult_results
+        let allResults: SearchResult[] = [];
+        if (data.regular_results && Array.isArray(data.regular_results)) {
+          allResults = allResults.concat(data.regular_results);
+        }
+        if (data.adult_results && Array.isArray(data.adult_results)) {
+          allResults = allResults.concat(data.adult_results);
+        }
+
+        // 兼容旧格式（如果有的话）
+        if (data.results && Array.isArray(data.results)) {
+          allResults = data.results;
+        }
+
         // 处理搜索结果，根据规则过滤
-        const results = data.results.filter(
+        const results = allResults.filter(
           (result: SearchResult) =>
             result.title.replaceAll(' ', '').toLowerCase() ===
-              videoTitleRef.current.replaceAll(' ', '').toLowerCase() &&
+            videoTitleRef.current.replaceAll(' ', '').toLowerCase() &&
             (videoYearRef.current
               ? result.year.toLowerCase() === videoYearRef.current.toLowerCase()
               : true) &&
             (searchType
               ? (searchType === 'tv' && result.episodes.length > 1) ||
-                (searchType === 'movie' && result.episodes.length === 1)
+              (searchType === 'movie' && result.episodes.length === 1)
               : true)
         );
         setAvailableSources(results);
@@ -737,12 +749,14 @@ function PlayPageClient() {
   // ---------------------------------------------------------------------------
   // 处理集数切换
   const handleEpisodeChange = (episodeNumber: number) => {
-    if (episodeNumber >= 0 && episodeNumber < totalEpisodes) {
+    // episodeNumber是显示的集数（从1开始），需要转换为索引（从0开始）
+    const episodeIndex = episodeNumber - 1;
+    if (episodeIndex >= 0 && episodeIndex < totalEpisodes) {
       // 在更换集数前保存当前播放进度
       if (artPlayerRef.current && artPlayerRef.current.paused) {
         saveCurrentPlayProgress();
       }
-      setCurrentEpisodeIndex(episodeNumber);
+      setCurrentEpisodeIndex(episodeIndex);
     }
   };
 
@@ -1033,20 +1047,30 @@ function PlayPageClient() {
       setError('视频地址无效');
       return;
     }
-    console.log(videoUrl);
 
     // 检测是否为WebKit浏览器
     const isWebkit =
       typeof window !== 'undefined' &&
       typeof (window as any).webkitConvertPointFromNodeToPage === 'function';
 
-    // 非WebKit浏览器且播放器已存在，使用switch方法切换
+    // 🚨 修复：确保切换前清理状态并验证URL正确性
     if (!isWebkit && artPlayerRef.current) {
-      artPlayerRef.current.switch = videoUrl;
-      artPlayerRef.current.title = `${videoTitle} - 第${
-        currentEpisodeIndex + 1
-      }集`;
-      artPlayerRef.current.poster = videoCover;
+      // 先验证当前URL是否正确
+      const expectedUrl = detail.episodes[currentEpisodeIndex];
+      if (artPlayerRef.current.url !== expectedUrl) {
+        console.log(`切换集数: ${currentEpisodeIndex + 1}, URL: ${videoUrl}`);
+
+        // 强制重新加载，避免缓存问题
+        artPlayerRef.current.switch = videoUrl;
+        artPlayerRef.current.title = `${videoTitle} - 第${currentEpisodeIndex + 1}集`;
+        artPlayerRef.current.poster = videoCover;
+
+        // 确保HLS重新加载
+        if (artPlayerRef.current?.video?.hls) {
+          artPlayerRef.current.video.hls.loadSource(videoUrl);
+        }
+      }
+
       if (artPlayerRef.current?.video) {
         ensureVideoSource(
           artPlayerRef.current.video as HTMLVideoElement,
@@ -1075,7 +1099,7 @@ function PlayPageClient() {
         container: artRef.current,
         url: videoUrl,
         poster: videoCover,
-        volume: 0.7,
+        volume: 1.0,
         isLive: false,
         muted: false,
         autoplay: true,
@@ -1122,7 +1146,7 @@ function PlayPageClient() {
               lowLatencyMode: true, // 开启低延迟 LL-HLS
 
               /* 缓冲/内存相关 */
-              maxBufferLength: 30, // 前向缓冲最大 30s，过大容易导致高延迟
+              maxBufferLength: 60, // 前向缓冲最大 30s，过大容易导致高延迟
               backBufferLength: 30, // 仅保留 30s 已播放内容，避免内存占用
               maxBufferSize: 60 * 1000 * 1000, // 约 60MB，超出后触发清理
 
@@ -1221,7 +1245,7 @@ function PlayPageClient() {
       artPlayerRef.current.on('video:timeupdate', () => {
         const currentTime = artPlayerRef.current.currentTime || 0;
         setCurrentPlayTime(currentTime);
-        
+
         // 同时更新时长（防止ready事件中获取不到）
         const duration = artPlayerRef.current.duration || 0;
         if (duration > 0 && videoDuration !== duration) {
@@ -1354,30 +1378,27 @@ function PlayPageClient() {
             <div className='mb-6 w-80 mx-auto'>
               <div className='flex justify-center space-x-2 mb-4'>
                 <div
-                  className={`w-3 h-3 rounded-full transition-all duration-500 ${
-                    loadingStage === 'searching' || loadingStage === 'fetching'
+                  className={`w-3 h-3 rounded-full transition-all duration-500 ${loadingStage === 'searching' || loadingStage === 'fetching'
                       ? 'bg-green-500 scale-125'
                       : loadingStage === 'preferring' ||
                         loadingStage === 'ready'
-                      ? 'bg-green-500'
-                      : 'bg-gray-300'
-                  }`}
+                        ? 'bg-green-500'
+                        : 'bg-gray-300'
+                    }`}
                 ></div>
                 <div
-                  className={`w-3 h-3 rounded-full transition-all duration-500 ${
-                    loadingStage === 'preferring'
+                  className={`w-3 h-3 rounded-full transition-all duration-500 ${loadingStage === 'preferring'
                       ? 'bg-green-500 scale-125'
                       : loadingStage === 'ready'
-                      ? 'bg-green-500'
-                      : 'bg-gray-300'
-                  }`}
+                        ? 'bg-green-500'
+                        : 'bg-gray-300'
+                    }`}
                 ></div>
                 <div
-                  className={`w-3 h-3 rounded-full transition-all duration-500 ${
-                    loadingStage === 'ready'
+                  className={`w-3 h-3 rounded-full transition-all duration-500 ${loadingStage === 'ready'
                       ? 'bg-green-500 scale-125'
                       : 'bg-gray-300'
-                  }`}
+                    }`}
                 ></div>
               </div>
 
@@ -1388,11 +1409,11 @@ function PlayPageClient() {
                   style={{
                     width:
                       loadingStage === 'searching' ||
-                      loadingStage === 'fetching'
+                        loadingStage === 'fetching'
                         ? '33%'
                         : loadingStage === 'preferring'
-                        ? '66%'
-                        : '100%',
+                          ? '66%'
+                          : '100%',
                   }}
                 ></div>
               </div>
@@ -1491,7 +1512,7 @@ function PlayPageClient() {
               </span>
             )}
           </h1>
-          
+
           {/* 跳过设置按钮 */}
           {currentSource && currentId && (
             <SkipSettingsButton onClick={() => setIsSkipSettingMode(true)} />
@@ -1511,9 +1532,8 @@ function PlayPageClient() {
               }
             >
               <svg
-                className={`w-3.5 h-3.5 text-gray-500 dark:text-gray-400 transition-transform duration-200 ${
-                  isEpisodeSelectorCollapsed ? 'rotate-180' : 'rotate-0'
-                }`}
+                className={`w-3.5 h-3.5 text-gray-500 dark:text-gray-400 transition-transform duration-200 ${isEpisodeSelectorCollapsed ? 'rotate-180' : 'rotate-0'
+                  }`}
                 fill='none'
                 stroke='currentColor'
                 viewBox='0 0 24 24'
@@ -1531,27 +1551,24 @@ function PlayPageClient() {
 
               {/* 精致的状态指示点 */}
               <div
-                className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full transition-all duration-200 ${
-                  isEpisodeSelectorCollapsed
+                className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full transition-all duration-200 ${isEpisodeSelectorCollapsed
                     ? 'bg-orange-400 animate-pulse'
                     : 'bg-green-400'
-                }`}
+                  }`}
               ></div>
             </button>
           </div>
 
           <div
-            className={`grid gap-4 lg:h-[500px] xl:h-[650px] 2xl:h-[750px] transition-all duration-300 ease-in-out ${
-              isEpisodeSelectorCollapsed
+            className={`grid gap-4 lg:h-[500px] xl:h-[650px] 2xl:h-[750px] transition-all duration-300 ease-in-out ${isEpisodeSelectorCollapsed
                 ? 'grid-cols-1'
                 : 'grid-cols-1 md:grid-cols-4'
-            }`}
+              }`}
           >
             {/* 播放器 */}
             <div
-              className={`h-full transition-all duration-300 ease-in-out rounded-xl border border-white/0 dark:border-white/30 ${
-                isEpisodeSelectorCollapsed ? 'col-span-1' : 'md:col-span-3'
-              }`}
+              className={`h-full transition-all duration-300 ease-in-out rounded-xl border border-white/0 dark:border-white/30 ${isEpisodeSelectorCollapsed ? 'col-span-1' : 'md:col-span-3'
+                }`}
             >
               <div className='relative w-full h-[300px] lg:h-full'>
                 <div
@@ -1616,14 +1633,14 @@ function PlayPageClient() {
 
             {/* 选集和换源 - 在移动端始终显示，在 lg 及以上可折叠 */}
             <div
-              className={`h-[300px] lg:h-full md:overflow-hidden transition-all duration-300 ease-in-out ${
-                isEpisodeSelectorCollapsed
+              className={`h-[600px] lg:h-full md:overflow-hidden transition-all duration-300 ease-in-out ${isEpisodeSelectorCollapsed
                   ? 'md:col-span-1 lg:hidden lg:opacity-0 lg:scale-95'
                   : 'md:col-span-1 lg:opacity-100 lg:scale-100'
-              }`}
+                }`}
             >
               <EpisodeSelector
                 totalEpisodes={totalEpisodes}
+                episodesPerPage={50}
                 value={currentEpisodeIndex + 1}
                 onChange={handleEpisodeChange}
                 onSourceChange={handleSourceChange}
