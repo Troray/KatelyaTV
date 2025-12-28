@@ -681,10 +681,10 @@ export default function SkipController({
 
                 {/* 右侧：实时提示 */}
                 <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg border border-blue-200 dark:border-blue-700">
-                  <p className="font-medium text-blue-800 dark:text-blue-200 mb-1">💡 实时提示 (点击填入):</p>
+                  <p className="font-medium text-blue-800 dark:text-blue-200 mb-1">💡 实时进度:</p>
                   <div className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed space-y-1">
                     <div className="flex items-center">
-                      <span>• 当前时间：</span>
+                      <span>• 当前：</span>
                       <button
                         onClick={() => {
                           if (currentTime > 0) {
@@ -699,7 +699,7 @@ export default function SkipController({
                         {secondsToTime(currentTime)}
                       </button>
                       <span className="mx-2 text-blue-400 dark:text-blue-500">|</span>
-                      <span>剩余时长：</span>
+                      <span>剩余：</span>
                       <button
                         onClick={() => {
                           if (duration > 0 && currentTime > 0) {
