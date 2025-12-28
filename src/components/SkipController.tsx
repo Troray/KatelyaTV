@@ -692,7 +692,7 @@ export default function SkipController({
                             setBatchSettings({...batchSettings, openingEnd: timeStr});
                           }
                         }}
-                        className="font-semibold hover:underline cursor-pointer px-1 rounded hover:bg-blue-100 dark:hover:bg-blue-800 transition-colors"
+                        className="font-semibold cursor-pointer px-2 py-0.5 rounded bg-blue-200 dark:bg-blue-700 hover:bg-blue-300 dark:hover:bg-blue-600 transition-colors"
                         title="点击填入片头结束时间"
                         disabled={currentTime <= 0}
                       >
@@ -701,7 +701,9 @@ export default function SkipController({
                     </div>
                     <div>
                       • 总时长：
-                      <span className="font-semibold">{secondsToTime(duration)}</span>
+                      <span className="font-semibold bg-blue-100 dark:bg-blue-800 px-2 py-0.5 rounded">
+                        {secondsToTime(duration)}
+                      </span>
                     </div>
                     <div>
                       • 剩余时长：
@@ -715,7 +717,7 @@ export default function SkipController({
                             }
                           }
                         }}
-                        className="font-semibold hover:underline cursor-pointer px-1 rounded hover:bg-blue-100 dark:hover:bg-blue-800 transition-colors"
+                        className="font-semibold cursor-pointer px-2 py-0.5 rounded bg-blue-200 dark:bg-blue-700 hover:bg-blue-300 dark:hover:bg-blue-600 transition-colors"
                         title="点击填入片尾时长"
                         disabled={duration <= 0 || currentTime <= 0 || (duration - currentTime) <= 0}
                       >
