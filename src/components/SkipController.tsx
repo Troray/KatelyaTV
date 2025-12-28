@@ -739,9 +739,9 @@ export default function SkipController({
                 onClick={() => {
                   onSettingModeChange?.(false);
                   setBatchSettings({
-                    openingStart: '0:00',
-                    openingEnd: '1:30',
-                    endingStart: '2:00',
+                    openingStart: '',
+                    openingEnd: '',
+                    endingStart: '',
                     autoSkip: true,
                     autoNextEpisode: true,
                   });
