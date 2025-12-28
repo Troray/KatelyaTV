@@ -683,8 +683,8 @@ export default function SkipController({
                 <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg border border-blue-200 dark:border-blue-700">
                   <p className="font-medium text-blue-800 dark:text-blue-200 mb-1">💡 实时提示 (点击填入):</p>
                   <div className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed space-y-1">
-                    <div>
-                      • 当前时间：
+                    <div className="flex items-center">
+                      <span>• 当前时间：</span>
                       <button
                         onClick={() => {
                           if (currentTime > 0) {
@@ -698,15 +698,8 @@ export default function SkipController({
                       >
                         {secondsToTime(currentTime)}
                       </button>
-                    </div>
-                    <div>
-                      • 总时长：
-                      <span className="font-semibold bg-blue-100 dark:bg-blue-800 px-2 py-0.5 rounded">
-                        {secondsToTime(duration)}
-                      </span>
-                    </div>
-                    <div>
-                      • 剩余时长：
+                      <span className="mx-2 text-blue-400 dark:text-blue-500">|</span>
+                      <span>剩余时长：</span>
                       <button
                         onClick={() => {
                           if (duration > 0 && currentTime > 0) {
@@ -723,6 +716,12 @@ export default function SkipController({
                       >
                         {secondsToTime(duration - currentTime)}
                       </button>
+                    </div>
+                    <div>
+                      • 总时长：
+                      <span className="font-semibold bg-blue-100 dark:bg-blue-800 px-2 py-0.5 rounded">
+                        {secondsToTime(duration)}
+                      </span>
                     </div>
                   </div>
                 </div>
