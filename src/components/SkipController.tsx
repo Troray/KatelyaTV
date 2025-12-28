@@ -309,29 +309,70 @@ export default function SkipController({
   const handleSaveBatchSettings = useCallback(async () => {
     const segments: SkipSegment[] = [];
 
-    // 添加片头设置
-    if (batchSettings.openingStart && batchSettings.openingEnd) {
-      const start = timeToSeconds(batchSettings.openingStart);
-      const end = timeToSeconds(batchSettings.openingEnd);
-      
-      if (start >= end) {
-        alert('片头开始时间必须小于结束时间');
-        return;
+    // 规则一：检查是否所有字段都为空
+    const allFieldsEmpty =
+      !batchSettings.openingStart &&
+      !batchSettings.openingEnd &&
+      !batchSettings.endingStart;
+
+    if (allFieldsEmpty) {
+      // 所有字段为空，删除配置
+      try {
+        await deleteSkipConfig(source, id);
+        setSkipConfig(null);
+        onSettingModeChange?.(false);
+
+        // 重置批量设置
+        setBatchSettings({
+          openingStart: '',
+          openingEnd: '',
+          endingStart: '',
+          autoSkip: true,
+          autoNextEpisode: true,
+        });
+
+        alert('跳过配置已删除');
+      } catch (err) {
+        console.error('删除跳过配置失败:', err);
+        alert('删除失败，请重试');
       }
-      
-      segments.push({
-        start,
-        end,
-        type: 'opening',
-        title: '片头',
-        autoSkip: batchSettings.autoSkip,
-      });
+      return;
+    }
+
+    // 添加片头设置
+    if (batchSettings.openingStart || batchSettings.openingEnd) {
+      // 规则二：如果只有结束时间，开始时间默认为 0:00
+      const startStr = batchSettings.openingStart || '0:00';
+      const endStr = batchSettings.openingEnd;
+
+      // 如果结束时间为空，不添加片头配置
+      if (!endStr) {
+        // 不添加片头配置
+      } else {
+        const start = timeToSeconds(startStr);
+        const end = timeToSeconds(endStr);
+
+        // 规则三：仅在时间逻辑不成立时才提示错误
+        if (start >= end) {
+          alert('片头开始时间必须小于结束时间');
+          return;
+        }
+
+        segments.push({
+          start,
+          end,
+          type: 'opening',
+          title: '片头',
+          autoSkip: batchSettings.autoSkip,
+        });
+      }
     }
 
     // 添加片尾设置 - 基于剩余时长的智能跳过逻辑
     if (batchSettings.endingStart) {
       const endingDuration = timeToSeconds(batchSettings.endingStart); // 片尾时长（秒）
 
+      // 规则三：仅在时间逻辑不成立时才提示错误
       if (endingDuration <= 0) {
         alert('片尾时长必须大于0');
         return;
@@ -349,8 +390,9 @@ export default function SkipController({
       });
     }
 
+    // 如果没有有效配置，提示错误
     if (segments.length === 0) {
-      alert('请至少设置片头或片尾时间');
+      alert('请设置有效的跳过时间');
       return;
     }
 
@@ -366,7 +408,7 @@ export default function SkipController({
       await saveSkipConfig(source, id, updatedConfig);
       setSkipConfig(updatedConfig);
       onSettingModeChange?.(false);
-      
+
       // 重置批量设置
       setBatchSettings({
         openingStart: '',
@@ -381,7 +423,7 @@ export default function SkipController({
       console.error('保存跳过配置失败:', err);
       alert('保存失败，请重试');
     }
-  }, [batchSettings, duration, source, id, title, onSettingModeChange, timeToSeconds, secondsToTime]);
+  }, [batchSettings, duration, source, id, title, onSettingModeChange, timeToSeconds, secondsToTime, deleteSkipConfig]);
 
   // 删除跳过片段
   const handleDeleteSegment = useCallback(
@@ -615,7 +657,7 @@ export default function SkipController({
                     value={batchSettings.endingStart}
                     onChange={(e) => setBatchSettings({...batchSettings, endingStart: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                    placeholder="1:30"
+                    placeholder="2:00"
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     当剩余时长 ≤ 此值时，自动跳过片尾
@@ -658,7 +700,7 @@ export default function SkipController({
                   <div className="bg-orange-50 dark:bg-orange-900/30 p-3 rounded border border-orange-200 dark:border-orange-700">
                     <p className="font-medium text-orange-800 dark:text-orange-200 mb-1">🎭 片尾示例</p>
                     <p className="text-orange-700 dark:text-orange-300">
-                      剩余 <code className="bg-white/50 dark:bg-black/30 px-1 rounded">90秒</code> 时倒计时跳转
+                      剩余 <code className="bg-white/50 dark:bg-black/30 px-1 rounded">120秒</code> 时倒计时跳转
                     </p>
                   </div>
                 </div>
@@ -679,7 +721,7 @@ export default function SkipController({
                   setBatchSettings({
                     openingStart: '0:00',
                     openingEnd: '1:30',
-                    endingStart: '1:30',
+                    endingStart: '2:00',
                     autoSkip: true,
                     autoNextEpisode: true,
                   });
