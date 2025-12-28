@@ -626,7 +626,7 @@ export default function SkipController({
                       type="text"
                       value={batchSettings.openingStart}
                       onChange={(e) => setBatchSettings({...batchSettings, openingStart: e.target.value})}
-                      className="w-[140px] px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-center"
+                      className="w-[135px] px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-center"
                       placeholder="0:00"
                     />
                     <span className="text-gray-500 dark:text-gray-400 font-medium">—</span>
@@ -634,7 +634,7 @@ export default function SkipController({
                       type="text"
                       value={batchSettings.openingEnd}
                       onChange={(e) => setBatchSettings({...batchSettings, openingEnd: e.target.value})}
-                      className="w-[140px] px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-center"
+                      className="w-[135px] px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-center"
                       placeholder="1:30"
                     />
                   </div>
