@@ -628,40 +628,18 @@ export default function SkipController({
 
                 <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg border border-blue-200 dark:border-blue-700">
                   <p className="text-sm text-blue-800 dark:text-blue-200 font-medium mb-1">
-                    💡 智能跳过逻辑
+                    💡 实时提示:
                   </p>
                   <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
-                    例如：设置片尾时长为 90 秒（1:30）<br/>
-                    • 21分钟剧集：播放到 19:30 时跳过<br/>
-                    • 17分钟剧集：播放到 15:30 时跳过<br/>
-                    • 自动适应不同剧集时长，无需重新设置
+                    • 当前时间：{secondsToTime(currentTime)}<br/>
+                    • 总时长：{secondsToTime(duration)}<br/>
+                    • 剩余时长: {secondsToTime(duration - currentTime)}
                   </p>
                 </div>
               </div>
             </div>
 
             <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              {/* 实时信息区 - 用网格布局 */}
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
-                <div className="text-center p-2 bg-white dark:bg-gray-600 rounded">
-                  <div className="text-xs text-gray-500 dark:text-gray-400">当前时间</div>
-                  <div className="font-semibold">{secondsToTime(currentTime)}</div>
-                </div>
-                {duration > 0 && (
-                  <>
-                    <div className="text-center p-2 bg-white dark:bg-gray-600 rounded">
-                      <div className="text-xs text-gray-500 dark:text-gray-400">总时长</div>
-                      <div className="font-semibold">{secondsToTime(duration)}</div>
-                    </div>
-                    <div className="text-center p-2 bg-green-100 dark:bg-green-900 rounded">
-                      <div className="text-xs text-green-700 dark:text-green-300">剩余时长</div>
-                      <div className="font-semibold text-green-800 dark:text-green-200">
-                        {secondsToTime(duration - currentTime)}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
 
               {/* 功能说明区 - 用卡片式布局 */}
               <div className="space-y-3 text-sm">
@@ -689,15 +667,6 @@ export default function SkipController({
                   </div>
                 </div>
 
-                <div className="bg-gray-100 dark:bg-gray-600 p-3 rounded">
-                  <p className="font-medium text-gray-800 dark:text-gray-200 mb-1">⌨️ 支持格式</p>
-                  <div className="flex flex-wrap gap-2 text-gray-700 dark:text-gray-300">
-                    <span className="bg-white/50 dark:bg-black/20 px-2 py-1 rounded">1:30</span>
-                    <span className="bg-white/50 dark:bg-black/20 px-2 py-1 rounded">2:10.5</span>
-                    <span className="bg-white/50 dark:bg-black/20 px-2 py-1 rounded">90</span>
-                    <span className="bg-white/50 dark:bg-black/20 px-2 py-1 rounded">130.5</span>
-                  </div>
-                </div>
               </div>
             </div>
 
