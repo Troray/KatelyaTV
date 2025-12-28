@@ -41,7 +41,7 @@ export default function SkipController({
   
   // 新增状态：批量设置模式 - 支持分:秒格式
   const [batchSettings, setBatchSettings] = useState({
-    openingStart: '0:00',   // 片头开始时间（分:秒格式）
+    openingStart: '',   // 片头开始时间（分:秒格式）
     openingEnd: '',         // 片头结束时间（分:秒格式，90秒=1分30秒）
     endingStart: '',        // 片尾时长（分:秒格式）- 基于剩余时长的智能跳过
     autoSkip: true,         // 自动跳过开关
@@ -369,7 +369,7 @@ export default function SkipController({
       
       // 重置批量设置
       setBatchSettings({
-        openingStart: '0:00',
+        openingStart: '',
         openingEnd: '',
         endingStart: '',
         autoSkip: true,
@@ -438,7 +438,7 @@ export default function SkipController({
   useEffect(() => {
     if (isSettingMode && skipConfig?.segments?.length) {
       // 初始化默认值
-      let openingStart = '0:00';
+      let openingStart = '';
       let openingEnd = '';
       let endingStart = ''; // 片尾时长
       let autoSkip = true;
