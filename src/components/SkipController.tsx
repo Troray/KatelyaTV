@@ -664,52 +664,6 @@ export default function SkipController({
                   </p>
                 </div>
 
-                <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg border border-blue-200 dark:border-blue-700">
-                  <p className="text-sm text-blue-800 dark:text-blue-200 font-medium mb-1">
-                    💡 实时提示 (点击填入):
-                  </p>
-                  <div className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed space-y-1">
-                    <div>
-                      • 当前时间：
-                      <button
-                        onClick={() => {
-                          if (currentTime > 0) {
-                            const timeStr = secondsToTime(currentTime);
-                            setBatchSettings({...batchSettings, openingEnd: timeStr});
-                          }
-                        }}
-                        className="font-semibold hover:underline cursor-pointer px-1 rounded hover:bg-blue-100 dark:hover:bg-blue-800 transition-colors"
-                        title="点击填入片头结束时间"
-                        disabled={currentTime <= 0}
-                      >
-                        {secondsToTime(currentTime)}
-                      </button>
-                    </div>
-                    <div>
-                      • 总时长：
-                      <span className="font-semibold">{secondsToTime(duration)}</span>
-                    </div>
-                    <div>
-                      • 剩余时长：
-                      <button
-                        onClick={() => {
-                          if (duration > 0 && currentTime > 0) {
-                            const remainingTime = duration - currentTime;
-                            if (remainingTime > 0) {
-                              const timeStr = secondsToTime(remainingTime);
-                              setBatchSettings({...batchSettings, endingStart: timeStr});
-                            }
-                          }
-                        }}
-                        className="font-semibold hover:underline cursor-pointer px-1 rounded hover:bg-blue-100 dark:hover:bg-blue-800 transition-colors"
-                        title="点击填入片尾时长"
-                        disabled={duration <= 0 || currentTime <= 0 || (duration - currentTime) <= 0}
-                      >
-                        {secondsToTime(duration - currentTime)}
-                      </button>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -720,8 +674,8 @@ export default function SkipController({
                 <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg border border-blue-200 dark:border-blue-700">
                   <p className="font-medium text-blue-800 dark:text-blue-200 mb-1">💡 智能跳过逻辑</p>
                   <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
-                    当播放时间进入设定区间时自动跳过。<br/>
-                    片尾规则基于「总时长 - 设定秒数」触发。
+                    • 当播放时间进入设定区间时自动跳过。<br/>
+                    • 片尾规则基于「总时长 - 设定秒数」触发。
                   </p>
                 </div>
 
