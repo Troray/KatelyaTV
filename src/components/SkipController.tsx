@@ -42,8 +42,8 @@ export default function SkipController({
   // 新增状态：批量设置模式 - 支持分:秒格式
   const [batchSettings, setBatchSettings] = useState({
     openingStart: '0:00',   // 片头开始时间（分:秒格式）
-    openingEnd: '1:30',     // 片头结束时间（分:秒格式，90秒=1分30秒）
-    endingStart: '1:30',    // 片尾时长（分:秒格式）- 基于剩余时长的智能跳过
+    openingEnd: '',         // 片头结束时间（分:秒格式，90秒=1分30秒）
+    endingStart: '',        // 片尾时长（分:秒格式）- 基于剩余时长的智能跳过
     autoSkip: true,         // 自动跳过开关
     autoNextEpisode: true,  // 自动下一集开关
   });
@@ -370,8 +370,8 @@ export default function SkipController({
       // 重置批量设置
       setBatchSettings({
         openingStart: '0:00',
-        openingEnd: '1:30',
-        endingStart: '1:30',
+        openingEnd: '',
+        endingStart: '',
         autoSkip: true,
         autoNextEpisode: true,
       });
@@ -439,8 +439,8 @@ export default function SkipController({
     if (isSettingMode && skipConfig?.segments?.length) {
       // 初始化默认值
       let openingStart = '0:00';
-      let openingEnd = '1:30';
-      let endingStart = '1:30'; // 片尾时长
+      let openingEnd = '';
+      let endingStart = ''; // 片尾时长
       let autoSkip = true;
       let autoNextEpisode = true;
 
@@ -641,15 +641,62 @@ export default function SkipController({
             </div>
 
             <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                <p><strong>当前播放时间:</strong> {secondsToTime(currentTime)}</p>
+              {/* 实时信息区 - 用网格布局 */}
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+                <div className="text-center p-2 bg-white dark:bg-gray-600 rounded">
+                  <div className="text-xs text-gray-500 dark:text-gray-400">当前时间</div>
+                  <div className="font-semibold">{secondsToTime(currentTime)}</div>
+                </div>
                 {duration > 0 && (
-                  <p><strong>视频总长度:</strong> {secondsToTime(duration)}</p>
+                  <>
+                    <div className="text-center p-2 bg-white dark:bg-gray-600 rounded">
+                      <div className="text-xs text-gray-500 dark:text-gray-400">总时长</div>
+                      <div className="font-semibold">{secondsToTime(duration)}</div>
+                    </div>
+                    <div className="text-center p-2 bg-green-100 dark:bg-green-900 rounded">
+                      <div className="text-xs text-green-700 dark:text-green-300">剩余时长</div>
+                      <div className="font-semibold text-green-800 dark:text-green-200">
+                        {secondsToTime(duration - currentTime)}
+                      </div>
+                    </div>
+                  </>
                 )}
-                <div className="text-xs mt-2 text-gray-500 space-y-1">
-                  <p>💡 <strong>片头示例:</strong> 从 0:00 自动跳到 1:30</p>
-                  <p>💡 <strong>片尾示例:</strong> 从 20:00 开始倒计时，自动跳下一集</p>
-                  <p>💡 支持格式: 1:30 (1分30秒) 或 90 (90秒)</p>
+              </div>
+
+              {/* 功能说明区 - 用卡片式布局 */}
+              <div className="space-y-3 text-sm">
+                <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded border border-blue-200 dark:border-blue-700">
+                  <p className="font-medium text-blue-800 dark:text-blue-200 mb-1">💡 智能跳过逻辑</p>
+                  <p className="text-blue-700 dark:text-blue-300 leading-relaxed">
+                    片尾时长设置后，当视频播放到"总时长 - 片尾时长"时自动跳转下一集。<br/>
+                    <strong>例如：</strong>设置90秒，21分钟剧集会在19:30跳过，17分钟剧集会在15:30跳过。
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="bg-purple-50 dark:bg-purple-900/30 p-3 rounded border border-purple-200 dark:border-purple-700">
+                    <p className="font-medium text-purple-800 dark:text-purple-200 mb-1">🎬 片头示例</p>
+                    <p className="text-purple-700 dark:text-purple-300">
+                      从 <code className="bg-white/50 dark:bg-black/30 px-1 rounded">0:00</code> 自动跳到 <code className="bg-white/50 dark:bg-black/30 px-1 rounded">1:30</code>
+                    </p>
+                  </div>
+
+                  <div className="bg-orange-50 dark:bg-orange-900/30 p-3 rounded border border-orange-200 dark:border-orange-700">
+                    <p className="font-medium text-orange-800 dark:text-orange-200 mb-1">🎭 片尾示例</p>
+                    <p className="text-orange-700 dark:text-orange-300">
+                      剩余 <code className="bg-white/50 dark:bg-black/30 px-1 rounded">90秒</code> 时倒计时跳转
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-gray-100 dark:bg-gray-600 p-3 rounded">
+                  <p className="font-medium text-gray-800 dark:text-gray-200 mb-1">⌨️ 支持格式</p>
+                  <div className="flex flex-wrap gap-2 text-gray-700 dark:text-gray-300">
+                    <span className="bg-white/50 dark:bg-black/20 px-2 py-1 rounded">1:30</span>
+                    <span className="bg-white/50 dark:bg-black/20 px-2 py-1 rounded">2:10.5</span>
+                    <span className="bg-white/50 dark:bg-black/20 px-2 py-1 rounded">90</span>
+                    <span className="bg-white/50 dark:bg-black/20 px-2 py-1 rounded">130.5</span>
+                  </div>
                 </div>
               </div>
             </div>
