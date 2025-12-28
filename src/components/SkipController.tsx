@@ -714,33 +714,62 @@ export default function SkipController({
             </div>
 
             <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-
-              {/* 功能说明区 - 用卡片式布局 */}
-              <div className="space-y-3 text-sm">
-                <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded border border-blue-200 dark:border-blue-700">
+              {/* 左右并列的信息区 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* 左侧：智能跳过逻辑说明 */}
+                <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg border border-blue-200 dark:border-blue-700">
                   <p className="font-medium text-blue-800 dark:text-blue-200 mb-1">💡 智能跳过逻辑</p>
-                  <p className="text-blue-700 dark:text-blue-300 leading-relaxed">
-                    片尾时长设置后，当视频播放到"总时长 - 片尾时长"时自动跳转下一集。<br/>
-                    <strong>例如：</strong>设置90秒，21分钟剧集会在19:30跳过，17分钟剧集会在15:30跳过。
+                  <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+                    当播放时间进入设定区间时自动跳过。<br/>
+                    片尾规则基于「总时长 - 设定秒数」触发。
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="bg-purple-50 dark:bg-purple-900/30 p-3 rounded border border-purple-200 dark:border-purple-700">
-                    <p className="font-medium text-purple-800 dark:text-purple-200 mb-1">🎬 片头示例</p>
-                    <p className="text-purple-700 dark:text-purple-300">
-                      从 <code className="bg-white/50 dark:bg-black/30 px-1 rounded">0:00</code> 自动跳到 <code className="bg-white/50 dark:bg-black/30 px-1 rounded">1:30</code>
-                    </p>
-                  </div>
-
-                  <div className="bg-orange-50 dark:bg-orange-900/30 p-3 rounded border border-orange-200 dark:border-orange-700">
-                    <p className="font-medium text-orange-800 dark:text-orange-200 mb-1">🎭 片尾示例</p>
-                    <p className="text-orange-700 dark:text-orange-300">
-                      剩余 <code className="bg-white/50 dark:bg-black/30 px-1 rounded">120秒</code> 时倒计时跳转
-                    </p>
+                {/* 右侧：实时提示 */}
+                <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg border border-blue-200 dark:border-blue-700">
+                  <p className="font-medium text-blue-800 dark:text-blue-200 mb-1">💡 实时提示 (点击填入):</p>
+                  <div className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed space-y-1">
+                    <div>
+                      • 当前时间：
+                      <button
+                        onClick={() => {
+                          if (currentTime > 0) {
+                            const timeStr = secondsToTime(currentTime);
+                            setBatchSettings({...batchSettings, openingEnd: timeStr});
+                          }
+                        }}
+                        className="font-semibold hover:underline cursor-pointer px-1 rounded hover:bg-blue-100 dark:hover:bg-blue-800 transition-colors"
+                        title="点击填入片头结束时间"
+                        disabled={currentTime <= 0}
+                      >
+                        {secondsToTime(currentTime)}
+                      </button>
+                    </div>
+                    <div>
+                      • 总时长：
+                      <span className="font-semibold">{secondsToTime(duration)}</span>
+                    </div>
+                    <div>
+                      • 剩余时长：
+                      <button
+                        onClick={() => {
+                          if (duration > 0 && currentTime > 0) {
+                            const remainingTime = duration - currentTime;
+                            if (remainingTime > 0) {
+                              const timeStr = secondsToTime(remainingTime);
+                              setBatchSettings({...batchSettings, endingStart: timeStr});
+                            }
+                          }
+                        }}
+                        className="font-semibold hover:underline cursor-pointer px-1 rounded hover:bg-blue-100 dark:hover:bg-blue-800 transition-colors"
+                        title="点击填入片尾时长"
+                        disabled={duration <= 0 || currentTime <= 0 || (duration - currentTime) <= 0}
+                      >
+                        {secondsToTime(duration - currentTime)}
+                      </button>
+                    </div>
                   </div>
                 </div>
-
               </div>
             </div>
 
