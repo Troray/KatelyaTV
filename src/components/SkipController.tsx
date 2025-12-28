@@ -577,30 +577,26 @@ export default function SkipController({
                 
                 <div>
                   <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-                    开始时间 (分:秒)
+                    时间范围
                   </label>
-                  <input
-                    type="text"
-                    value={batchSettings.openingStart}
-                    onChange={(e) => setBatchSettings({...batchSettings, openingStart: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                    placeholder="0:00"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">格式: 分:秒 (如 0:00)</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-                    结束时间 (分:秒)
-                  </label>
-                  <input
-                    type="text"
-                    value={batchSettings.openingEnd}
-                    onChange={(e) => setBatchSettings({...batchSettings, openingEnd: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                    placeholder="1:30"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">格式: 分:秒 (如 1:30)</p>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="text"
+                      value={batchSettings.openingStart}
+                      onChange={(e) => setBatchSettings({...batchSettings, openingStart: e.target.value})}
+                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-center"
+                      placeholder="0:00"
+                    />
+                    <span className="text-gray-500 dark:text-gray-400 font-medium">—</span>
+                    <input
+                      type="text"
+                      value={batchSettings.openingEnd}
+                      onChange={(e) => setBatchSettings({...batchSettings, openingEnd: e.target.value})}
+                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-center"
+                      placeholder="1:30"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">格式: 分:秒 (如 0:00 — 1:30)</p>
                 </div>
               </div>
 
