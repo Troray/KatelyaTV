@@ -1099,7 +1099,7 @@ function PlayPageClient() {
         container: artRef.current,
         url: videoUrl,
         poster: videoCover,
-        volume: 1.0,
+        volume: 1,
         isLive: false,
         muted: false,
         autoplay: true,
